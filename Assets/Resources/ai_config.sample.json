@@ -1,0 +1,5 @@
+{
+  "apiKey": "PASTE_YOUR_CLAUDE_KEY_FROM_GENSPARK_HERE",
+  "endpoint": "https://api.anthropic.com/v1/messages",
+  "model": "claude-3-5-sonnet-latest"
+}
