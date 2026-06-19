@@ -7,18 +7,24 @@ using UnityEngine.Networking;
 
 /// <summary>
 /// Builds a JSON summary of MO's attempt and turns it into Dr. Olayinka's
-/// feedback.
+/// feedback via the OpenRouter API (Qwen 3.7).
 ///
-/// RIGHT NOW: works fully offline with a rule-based fallback so your demo
-/// never depends on the network.
-///
-/// LATER: drop in your Claude API key (via Genspark) — see the clearly
-/// marked "WIRE YOUR CLAUDE API HERE" region below. Put the key in
-///   Assets/Resources/ai_config.json   (already in .gitignore)
-/// shaped like: { "apiKey": "sk-...", "endpoint": "https://...", "model": "claude-..." }
+/// The endpoint, model, and key are HARDCODED below — no config file needed.
+/// If the API call fails (no network / bad key), it falls back to a
+/// rule-based offline response so the game is always playable.
 /// </summary>
 public class AIFeedback : MonoBehaviour
 {
+    // ============================================================
+    // ==========  HARDCODED API CONFIG (edit here)  ==============
+    // ============================================================
+    // Paste your OpenRouter API key between the quotes.
+    // Get one at https://openrouter.ai/keys
+    private const string OPENROUTER_API_KEY = "PASTE_YOUR_OPENROUTER_KEY_HERE";
+    private const string OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+    private const string OPENROUTER_MODEL = "qwen/qwen-2.5-72b-instruct";
+    // ============================================================
+
     [Header("Dr. Olayinka persona / prompt")]
     [TextArea(3, 8)]
     public string systemPrompt =
@@ -27,8 +33,8 @@ public class AIFeedback : MonoBehaviour
         "what they did well, what they missed, and one specific tip for next time. " +
         "Keep it warm but honest. 80 words max.";
 
-    [Header("Toggle: try the real API if a config is present")]
-    public bool useLiveApi = false;
+    [Header("Live API (untick to force offline fallback)")]
+    public bool useLiveApi = true;
 
     // ---- JSON shapes (Unity's JsonUtility needs concrete [Serializable] types) ----
     [Serializable]
@@ -41,14 +47,6 @@ public class AIFeedback : MonoBehaviour
         public int insertion_score;
         public int sharps_score;
         public int total_score;
-    }
-
-    [Serializable]
-    private class AiConfig
-    {
-        public string apiKey;
-        public string endpoint;
-        public string model;
     }
 
     /// <summary>Build the structured summary from the current session.</summary>
@@ -78,34 +76,25 @@ public class AIFeedback : MonoBehaviour
         string json = JsonUtility.ToJson(summary, true);
         Debug.Log("[AIFeedback] Attempt summary:\n" + json);
 
-        var config = LoadConfig();
-        if (useLiveApi && config != null && !string.IsNullOrEmpty(config.apiKey))
+        bool hasKey = !string.IsNullOrEmpty(OPENROUTER_API_KEY)
+                      && OPENROUTER_API_KEY != "PASTE_YOUR_OPENROUTER_KEY_HERE";
+
+        if (useLiveApi && hasKey)
         {
-            StartCoroutine(SendToClaude(config, summary, json, onResult));
+            StartCoroutine(SendToOpenRouter(summary, json, onResult));
         }
         else
         {
+            Debug.Log("[AIFeedback] No API key set — using offline fallback.");
             onResult?.Invoke(LocalFallback(summary));
         }
-    }
-
-    private AiConfig LoadConfig()
-    {
-        // Looks for Assets/Resources/ai_config.json (without the .json extension).
-        var asset = Resources.Load<TextAsset>("ai_config");
-        if (asset == null) return null;
-        try { return JsonUtility.FromJson<AiConfig>(asset.text); }
-        catch { return null; }
     }
 
     // ============================================================
     // =============  OPENROUTER (Qwen 3.7) INTEGRATION  ==========
     // ============================================================
-    // OpenRouter uses an OpenAI-compatible chat completions API.
-    // Put your key in Assets/Resources/ai_config.json:
-    //   { "apiKey": "sk-or-...", "endpoint": "https://openrouter.ai/api/v1/chat/completions",
-    //     "model": "qwen/qwen-2.5-72b-instruct" }
-    private IEnumerator SendToClaude(AiConfig cfg, AttemptSummary summary, string summaryJson, Action<string> onResult)
+    // Uses the hardcoded constants at the top of this file.
+    private IEnumerator SendToOpenRouter(AttemptSummary summary, string summaryJson, Action<string> onResult)
     {
         string userContent =
             "Here is the trainee's IV cannulation attempt as JSON. " +
@@ -114,7 +103,7 @@ public class AIFeedback : MonoBehaviour
         // OpenAI-compatible request body (OpenRouter format).
         string body =
             "{" +
-            "\"model\":\"" + (string.IsNullOrEmpty(cfg.model) ? "qwen/qwen-2.5-72b-instruct" : cfg.model) + "\"," +
+            "\"model\":\"" + OPENROUTER_MODEL + "\"," +
             "\"max_tokens\":400," +
             "\"messages\":[" +
             "{\"role\":\"system\",\"content\":" + JsonString(systemPrompt) + "}," +
@@ -122,17 +111,13 @@ public class AIFeedback : MonoBehaviour
             "]" +
             "}";
 
-        string url = string.IsNullOrEmpty(cfg.endpoint)
-            ? "https://openrouter.ai/api/v1/chat/completions"
-            : cfg.endpoint;
-
-        using (var req = new UnityWebRequest(url, "POST"))
+        using (var req = new UnityWebRequest(OPENROUTER_ENDPOINT, "POST"))
         {
             byte[] raw = Encoding.UTF8.GetBytes(body);
             req.uploadHandler = new UploadHandlerRaw(raw);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
-            req.SetRequestHeader("Authorization", "Bearer " + cfg.apiKey);
+            req.SetRequestHeader("Authorization", "Bearer " + OPENROUTER_API_KEY);
             req.SetRequestHeader("HTTP-Referer", "https://github.com/Prodigeezyxx/mos-iv-quest");
             req.SetRequestHeader("X-Title", "MO's IV Quest");
 
@@ -147,6 +132,7 @@ public class AIFeedback : MonoBehaviour
 
             // OpenRouter/OpenAI response: {"choices":[{"message":{"content":"..."}}], ...}
             string text = ExtractContent(req.downloadHandler.text);
+            Debug.Log("[AIFeedback] API response: " + req.downloadHandler.text);
             onResult?.Invoke(string.IsNullOrEmpty(text) ? LocalFallback(summary) : text);
         }
     }
