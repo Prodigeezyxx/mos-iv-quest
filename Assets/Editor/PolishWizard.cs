@@ -102,7 +102,7 @@ public class PolishWizard : EditorWindow
         // ============================================
         // 4. WIRE TITLE SCREEN INTO TURNMANAGER
         // ============================================
-        var tm = FindFirstObjectByType<TurnManager>();
+        var tm = FindAnyObjectByType<TurnManager>();
         if (tm != null)
         {
             tm.titleScreen = titlePanel;

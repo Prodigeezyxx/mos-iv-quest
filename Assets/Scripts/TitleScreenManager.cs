@@ -39,7 +39,7 @@ public class TitleScreenManager : MonoBehaviour
         if (AudioManager.Instance != null) AudioManager.Instance.PlayClick();
         if (titlePanel != null) titlePanel.SetActive(false);
 
-        var tm = FindFirstObjectByType<TurnManager>();
+        var tm = FindAnyObjectByType<TurnManager>();
         if (tm != null) tm.BeginGame();
     }
 
