@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace MoIVQuest
 {
@@ -17,7 +18,7 @@ namespace MoIVQuest
         public TurnManager turnManager;
 
         [Tooltip("Optional: a UI Text on the button to auto-label.")]
-        public Text label;
+        public TextMeshProUGUI label;
 
         private void Start()
         {

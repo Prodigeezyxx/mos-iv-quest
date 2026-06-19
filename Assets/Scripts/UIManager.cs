@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace MoIVQuest
 {
@@ -7,22 +8,21 @@ namespace MoIVQuest
     /// All on-screen HUD: score, Dr. Olayinka's speech bubble, and the
     /// end-of-shift patient outcome panel.
     /// Drag the matching UI objects into these fields in the Inspector.
-    /// (Using legacy UnityEngine.UI.Text so there's no TextMeshPro import step.)
     /// </summary>
     public class UIManager : MonoBehaviour
     {
         [Header("HUD")]
-        public Text scoreText;
+        public TextMeshProUGUI scoreText;
 
         [Header("Dr. Olayinka speech bubble")]
         public GameObject speechBubble;
-        public Text speechText;
+        public TextMeshProUGUI speechText;
         public Image mentorPortrait;     // optional: assign Dr. Olayinka sprite
         public string mentorName = "Dr. Olayinka";
 
         [Header("Outcome screen")]
         public GameObject outcomePanel;
-        public Text outcomeText;
+        public TextMeshProUGUI outcomeText;
         public Image outcomeFace;
         public Sprite faceHappy;         // thumbs up
         public Sprite faceNeutral;
