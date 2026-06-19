@@ -32,12 +32,14 @@ public class SceneSetupWizard : EditorWindow
         uiManager.AddComponent<UIManager>();
 
         // ============================================
-        // 2. CREATE MO (PLAYER)
+        // 2. CREATE MO (PLAYER) — proper 2D sprite
         // ============================================
-        var mo = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        mo.name = "MO";
+        var mo = new GameObject("MO");
         mo.transform.position = Vector3.zero;
-        mo.GetComponent<MeshRenderer>().material.color = Color.cyan;
+        var sr = mo.AddComponent<SpriteRenderer>();
+        sr.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        sr.color = Color.cyan;
+        mo.transform.localScale = new Vector3(2f, 2f, 1f);
 
         // Add PlayerController
         var playerController = mo.AddComponent<PlayerController>();
@@ -46,6 +48,7 @@ public class SceneSetupWizard : EditorWindow
         // Add Rigidbody2D with no gravity
         var rb = mo.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0;
+        rb.freezeRotation = true;
 
         // Add Camera
         var camObj = new GameObject("Main Camera");
