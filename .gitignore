@@ -41,3 +41,7 @@ Thumbs.db
 Assets/Resources/ai_config.json
 *.env
 secrets.json
+
+# Local tooling installers (too large for GitHub)
+Assets/Sprites/latest gen/removebg-for-windows-2.4.1.exe
+Assets/Sprites/latest gen/removebg-for-windows-2.4.1.exe.meta

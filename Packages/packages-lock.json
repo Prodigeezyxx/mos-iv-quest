@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.genies.avatar-sdk.client": {
-      "version": "file:com.genies.avatar-sdk.client",
+      "version": "file:com.genies.avatar-sdk.client.DISABLED",
       "depth": 0,
       "source": "embedded",
       "dependencies": {
