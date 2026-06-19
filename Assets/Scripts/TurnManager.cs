@@ -27,8 +27,24 @@ public class TurnManager : MonoBehaviour
 
     private List<ClinicalStep> _correctOrder;
 
+    [Header("Title screen (optional — assign to pause game until Start)")]
+    public GameObject titleScreen;
+    private bool _gameStarted;
+
     private void Start()
     {
+        // If there's a title screen, wait for it to call BeginGame()
+        if (titleScreen != null && titleScreen.activeSelf)
+        {
+            _gameStarted = false;
+            return;
+        }
+        BeginGame();
+    }
+
+    public void BeginGame()
+    {
+        _gameStarted = true;
         _correctOrder = ClinicalStepInfo.CorrectOrder();
         if (GameManager.Instance != null) GameManager.Instance.ResetSession();
         CurrentPhase = Phase.PlayerTurn;
@@ -40,11 +56,9 @@ public class TurnManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Called by ActionButton when MO clicks an action tile.
-    /// </summary>
     public void PerformStep(ClinicalStep step)
     {
+        if (!_gameStarted) return;
         if (CurrentPhase != Phase.PlayerTurn) return; // ignore clicks mid-resolve
         if (GameManager.Instance == null) return;
 
@@ -57,9 +71,10 @@ public class TurnManager : MonoBehaviour
 
         bool correct = step == expected;
 
-        if (correct)
-        {
-            CurrentPhase = Phase.Resolving;
+            if (correct)
+            {
+                CurrentPhase = Phase.Resolving;
+                if (AudioManager.Instance != null) AudioManager.Instance.PlaySuccess();
 
             if (ClinicalStepInfo.IsMiniGame(step) && miniGames != null)
             {
@@ -73,7 +88,8 @@ public class TurnManager : MonoBehaviour
         else
         {
             // Wrong order: dock a few points, log it, but DON'T block the flow.
-            gm.AddScore(-GameManager.WrongStepPenalty);
+                gm.AddScore(-GameManager.WrongStepPenalty);
+                if (AudioManager.Instance != null) AudioManager.Instance.PlayError();
             string msg = $"Hold on — '{ClinicalStepInfo.Name(step)}' isn't next. " +
                          $"You should '{ClinicalStepInfo.Name(expected)}' first.";
             gm.RecordError($"out_of_order: did '{step}' when '{expected}' was expected");
@@ -144,9 +160,10 @@ public class TurnManager : MonoBehaviour
         }
     }
 
-    private void EndShift()
-    {
-        CurrentPhase = Phase.ShiftComplete;
+        private void EndShift()
+        {
+            CurrentPhase = Phase.ShiftComplete;
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayComplete();
         var gm = GameManager.Instance;
 
         if (ui != null) ui.ShowOutcome(gm.Score);

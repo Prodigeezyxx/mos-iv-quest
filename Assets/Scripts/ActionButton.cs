@@ -27,11 +27,12 @@ public class ActionButton : MonoBehaviour
             label.text = ClinicalStepInfo.Name(step);
     }
 
-    private void OnClicked()
-    {
-        if (turnManager != null)
-            turnManager.PerformStep(step);
-        else
-            Debug.LogWarning($"ActionButton '{name}' has no TurnManager assigned.");
-    }
+        private void OnClicked()
+        {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayClick();
+            if (turnManager != null)
+                turnManager.PerformStep(step);
+            else
+                Debug.LogWarning($"ActionButton '{name}' has no TurnManager assigned.");
+        }
 }
