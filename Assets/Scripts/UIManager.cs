@@ -42,13 +42,17 @@ public class UIManager : MonoBehaviour
 
     public void ShowMentorMessage(string message)
     {
-        if (speechBubble != null) speechBubble.SetActive(true);
+        if (speechBubble != null)
+        {
+            speechBubble.SetActive(true);
+            if (UITweener.Instance != null)
+                UITweener.Instance.Punch(speechBubble, 0.05f, 0.2f);
+        }
         if (speechText != null) speechText.text = $"{mentorName}: {message}";
     }
 
     public void ShowOutcome(int score)
     {
-        // Max possible ≈ 12 steps * 10 points.
         int max = ClinicalStepInfo.TotalSteps * GameManager.CorrectStepPoints;
         float pct = max > 0 ? (float)score / max : 0f;
 
@@ -58,7 +62,13 @@ public class UIManager : MonoBehaviour
         else if (pct >= neutralThreshold) { verdict = "The IV is in, but it was a bumpy ride."; face = faceNeutral; }
         else { verdict = "Ouch. The patient had a rough time tonight."; face = faceHurt; }
 
-        if (outcomePanel != null) outcomePanel.SetActive(true);
+        if (outcomePanel != null)
+        {
+            if (UITweener.Instance != null)
+                UITweener.Instance.ScaleIn(outcomePanel, 0.4f);
+            else
+                outcomePanel.SetActive(true);
+        }
         if (outcomeText != null) outcomeText.text = $"Shift complete!\nScore: {score}/{max}\n{verdict}";
         if (outcomeFace != null && face != null) outcomeFace.sprite = face;
     }

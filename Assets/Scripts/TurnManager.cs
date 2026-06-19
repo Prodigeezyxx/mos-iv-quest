@@ -18,6 +18,9 @@ public class TurnManager : MonoBehaviour
     public MiniGameController miniGames;
     public AIFeedback aiFeedback;
 
+    [Header("Guided flow (optional — auto-found if null)")]
+    public GameFlowGuide flowGuide;
+
     [Header("Runtime state (read-only)")]
     public Phase CurrentPhase = Phase.PlayerTurn;
     public int CurrentStepIndex = 0;   // how far along the correct order we are
@@ -49,10 +52,18 @@ public class TurnManager : MonoBehaviour
         if (GameManager.Instance != null) GameManager.Instance.ResetSession();
         CurrentPhase = Phase.PlayerTurn;
         CurrentStepIndex = 0;
+
+        // Auto-find flow guide if not assigned
+        if (flowGuide == null) flowGuide = FindAnyObjectByType<GameFlowGuide>();
+
+        // Highlight the first step
+        if (flowGuide != null && _correctOrder.Count > 0)
+            flowGuide.SetCurrentExpected(_correctOrder[0], 0);
+
         if (ui != null)
         {
             ui.SetScore(0);
-            ui.ShowMentorMessage("Welcome to the night shift, MO. Let's start with the patient. What's step one?");
+            ui.ShowMentorMessage("Welcome to the night shift, MO. Click the GREEN button to start. That's your first step!");
         }
     }
 
@@ -71,10 +82,11 @@ public class TurnManager : MonoBehaviour
 
         bool correct = step == expected;
 
-            if (correct)
-            {
-                CurrentPhase = Phase.Resolving;
-                if (AudioManager.Instance != null) AudioManager.Instance.PlaySuccess();
+        if (correct)
+        {
+            CurrentPhase = Phase.Resolving;
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySuccess();
+            if (flowGuide != null) flowGuide.FlashCorrect(step);
 
             if (ClinicalStepInfo.IsMiniGame(step) && miniGames != null)
             {
@@ -88,10 +100,12 @@ public class TurnManager : MonoBehaviour
         else
         {
             // Wrong order: dock a few points, log it, but DON'T block the flow.
-                gm.AddScore(-GameManager.WrongStepPenalty);
-                if (AudioManager.Instance != null) AudioManager.Instance.PlayError();
-            string msg = $"Hold on — '{ClinicalStepInfo.Name(step)}' isn't next. " +
-                         $"You should '{ClinicalStepInfo.Name(expected)}' first.";
+            gm.AddScore(-GameManager.WrongStepPenalty);
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayError();
+            if (flowGuide != null) flowGuide.FlashWrong(step);
+
+            string msg = $"Not yet! You tried '{ClinicalStepInfo.Name(step)}' but the next step is " +
+                         $"'{ClinicalStepInfo.Name(expected)}'. Look for the GREEN button!";
             gm.RecordError($"out_of_order: did '{step}' when '{expected}' was expected");
             if (ui != null)
             {
@@ -107,6 +121,15 @@ public class TurnManager : MonoBehaviour
         gm.AddScore(GameManager.CorrectStepPoints);
         gm.CompletedSteps.Add(step);
         CurrentStepIndex++;
+
+        // Update flow guide for next step
+        if (flowGuide != null)
+        {
+            if (CurrentStepIndex < _correctOrder.Count)
+                flowGuide.SetCurrentExpected(_correctOrder[CurrentStepIndex], CurrentStepIndex);
+            else
+                flowGuide.SetCurrentExpected(ClinicalStep.None, CurrentStepIndex);
+        }
 
         if (ui != null)
         {
@@ -132,6 +155,13 @@ public class TurnManager : MonoBehaviour
         gm.AddScore(Mathf.RoundToInt(GameManager.CorrectStepPoints * (score / 100f)));
         gm.CompletedSteps.Add(step);
         CurrentStepIndex++;
+
+        // Update flow guide for next step
+        if (flowGuide != null)
+        {
+            if (CurrentStepIndex < _correctOrder.Count)
+                flowGuide.SetCurrentExpected(_correctOrder[CurrentStepIndex], CurrentStepIndex);
+        }
 
         if (ui != null)
         {
