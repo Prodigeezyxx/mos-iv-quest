@@ -110,7 +110,7 @@ public class SceneSetupWizard : EditorWindow
         var buttonPanel = CreatePanel("ButtonPanel", canvasObj.transform);
         var buttonPanelRect = buttonPanel.GetComponent<RectTransform>();
         buttonPanelRect.anchorMin = new Vector2(0, 0);
-        buttonPanel.anchorMax = new Vector2(1, 0);
+        buttonPanelRect.anchorMax = new Vector2(1, 0);
         buttonPanelRect.pivot = new Vector2(0.5f, 0);
         buttonPanelRect.sizeDelta = new Vector2(0, 200);
         buttonPanelRect.anchoredPosition = new Vector2(0, 180);
@@ -142,7 +142,7 @@ public class SceneSetupWizard : EditorWindow
             actionBtn.turnManager = turnManager.GetComponent<TurnManager>();
 
             // Get the child text
-            var btnText = btnObj.GetComponentInChildren<TMP_Text>();
+            var btnText = btnObj.GetComponentInChildren<TextMeshProUGUI>();
             if (btnText != null)
             {
                 actionBtn.label = btnText;
@@ -269,11 +269,11 @@ public class SceneSetupWizard : EditorWindow
 
         // UIManager references
         var uiMgr = uiManager.GetComponent<UIManager>();
-        uiMgr.scoreText = scoreTextObj.GetComponent<TMP_Text>();
+        uiMgr.scoreText = scoreTextObj.GetComponent<TextMeshProUGUI>();
         uiMgr.speechBubble = speechBubbleObj;
-        uiMgr.speechText = speechTextObj.GetComponent<TMP_Text>();
+        uiMgr.speechText = speechTextObj.GetComponent<TextMeshProUGUI>();
         uiMgr.outcomePanel = outcomePanelObj;
-        uiMgr.outcomeText = outcomeTextObj.GetComponent<TMP_Text>();
+        uiMgr.outcomeText = outcomeTextObj.GetComponent<TextMeshProUGUI>();
         uiMgr.outcomeFace = outcomeFaceObj.GetComponent<Image>();
 
         // ============================================
