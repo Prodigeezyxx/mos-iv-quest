@@ -1,5 +1,5 @@
 {
-  "apiKey": "PASTE_YOUR_CLAUDE_KEY_FROM_GENSPARK_HERE",
-  "endpoint": "https://api.anthropic.com/v1/messages",
-  "model": "claude-3-5-sonnet-latest"
+  "apiKey": "sk-or-PASTE_YOUR_OPENROUTER_KEY_HERE",
+  "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "model": "qwen/qwen-2.5-72b-instruct"
 }

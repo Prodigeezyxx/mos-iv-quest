@@ -99,27 +99,32 @@ public class AIFeedback : MonoBehaviour
     }
 
     // ============================================================
-    // ================  WIRE YOUR CLAUDE API HERE  ===============
+    // =============  OPENROUTER (Qwen 3.7) INTEGRATION  ==========
     // ============================================================
-    // This is set up for Anthropic's Messages API shape. If Genspark
-    // gives you an OpenAI-compatible endpoint instead, adjust the
-    // headers/body to match (it's only a few lines).
+    // OpenRouter uses an OpenAI-compatible chat completions API.
+    // Put your key in Assets/Resources/ai_config.json:
+    //   { "apiKey": "sk-or-...", "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+    //     "model": "qwen/qwen-2.5-72b-instruct" }
     private IEnumerator SendToClaude(AiConfig cfg, AttemptSummary summary, string summaryJson, Action<string> onResult)
     {
         string userContent =
             "Here is the trainee's IV cannulation attempt as JSON. " +
             "Give your feedback as Dr. Olayinka.\n\n" + summaryJson;
 
-        // Build request body (Anthropic Messages API format).
+        // OpenAI-compatible request body (OpenRouter format).
         string body =
             "{" +
-            "\"model\":\"" + (string.IsNullOrEmpty(cfg.model) ? "claude-3-5-sonnet-latest" : cfg.model) + "\"," +
-            "\"max_tokens\":300," +
-            "\"system\":" + JsonString(systemPrompt) + "," +
-            "\"messages\":[{\"role\":\"user\",\"content\":" + JsonString(userContent) + "}]" +
+            "\"model\":\"" + (string.IsNullOrEmpty(cfg.model) ? "qwen/qwen-2.5-72b-instruct" : cfg.model) + "\"," +
+            "\"max_tokens\":400," +
+            "\"messages\":[" +
+            "{\"role\":\"system\",\"content\":" + JsonString(systemPrompt) + "}," +
+            "{\"role\":\"user\",\"content\":" + JsonString(userContent) + "}" +
+            "]" +
             "}";
 
-        string url = string.IsNullOrEmpty(cfg.endpoint) ? "https://api.anthropic.com/v1/messages" : cfg.endpoint;
+        string url = string.IsNullOrEmpty(cfg.endpoint)
+            ? "https://openrouter.ai/api/v1/chat/completions"
+            : cfg.endpoint;
 
         using (var req = new UnityWebRequest(url, "POST"))
         {
@@ -127,8 +132,9 @@ public class AIFeedback : MonoBehaviour
             req.uploadHandler = new UploadHandlerRaw(raw);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
-            req.SetRequestHeader("x-api-key", cfg.apiKey);
-            req.SetRequestHeader("anthropic-version", "2023-06-01");
+            req.SetRequestHeader("Authorization", "Bearer " + cfg.apiKey);
+            req.SetRequestHeader("HTTP-Referer", "https://github.com/Prodigeezyxx/mos-iv-quest");
+            req.SetRequestHeader("X-Title", "MO's IV Quest");
 
             yield return req.SendWebRequest();
 
@@ -139,13 +145,13 @@ public class AIFeedback : MonoBehaviour
                 yield break;
             }
 
-            // Response: {"content":[{"type":"text","text":"..."}], ...}
-            string text = ExtractFirstText(req.downloadHandler.text);
+            // OpenRouter/OpenAI response: {"choices":[{"message":{"content":"..."}}], ...}
+            string text = ExtractContent(req.downloadHandler.text);
             onResult?.Invoke(string.IsNullOrEmpty(text) ? LocalFallback(summary) : text);
         }
     }
     // ============================================================
-    // ==============  END CLAUDE API INTEGRATION  ================
+    // ===========  END OPENROUTER API INTEGRATION  ===============
     // ============================================================
 
     /// <summary>Offline, rule-based feedback so the game is always playable.</summary>
@@ -214,10 +220,10 @@ public class AIFeedback : MonoBehaviour
         return sb.ToString();
     }
 
-    // Very small extractor for the first "text":"..." in the Claude response.
-    private static string ExtractFirstText(string responseJson)
+    // Extracts "content":"..." from OpenRouter/OpenAI chat completions response.
+    private static string ExtractContent(string responseJson)
     {
-        const string key = "\"text\":\"";
+        const string key = "\"content\":\"";
         int i = responseJson.IndexOf(key, StringComparison.Ordinal);
         if (i < 0) return null;
         i += key.Length;
